@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gaussian Splatting Demo in 2D</title>
+    <script src="https://threejs.org/build/three.js"></script>
+    <style>
+        body {
+            margin: 0;
+            overflow: hidden;
+        }
+    </style>
+</head>
+
+<body>
+    <script>
+        // Helper function to generate a random color
+        function getRandomColor() {
+            const r = Math.random();
+            const g = Math.random();
+            const b = Math.random();
+            return new THREE.Color(r, g, b);
+        }
+
+        // Generate a large set of random 2D points with random colors
+        const points = Array.from({ length: 500 }, () => ({
+            x: (Math.random() - 0.5) * 20,
+            y: (Math.random() - 0.5) * 20,
+            z: 0,
+            size: Math.random() * 1.5 + 0.2,  // Random size between 0.2 and 1.7
+            alphaMagnitude: Math.random() * 0.7 + 0.5,  // Random alpha magnitude between 0.2 and 1
+            color: getRandomColor()  // Random color
+        }));
+
+        // Generate a second set of random 2D points for subtraction
+        const subtractivePoints = Array.from({ length: 2500 }, () => ({
+            x: (Math.random() - 0.5) * 20,
+            y: (Math.random() - 0.5) * 20,
+            z: 0,
+            size: Math.random() * 1.5 + 0.6,
+            alphaMagnitude: Math.random() * 0.3 + 0.0
+        }));
+
+        // Setup the scene, camera, and renderer
+        const scene = new THREE.Scene();
+        const camera = new THREE.OrthographicCamera(
+            window.innerWidth / -100, 
+            window.innerWidth / 100, 
+            window.innerHeight / 100, 
+            window.innerHeight / -100, 
+            0.1, 
+            1000
+        );
+        const renderer = new THREE.WebGLRenderer();
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        document.body.appendChild(renderer.domElement);
+
+        // Gaussian splat shader material for the first set of points
+        const gaussianMaterial = new THREE.ShaderMaterial({
+            transparent: true,
+            uniforms: {
+                color: { value: new THREE.Color(0x0000ff) },  // Default color, will be overridden per splat
+                sigma: { value: 0.2 },
+                alphaMagnitude: { value: 1.0 }
+            },
+            vertexShader: `
+                varying vec2 vUv;
+                void main() {
+                    vUv = uv;
+                    gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+                }
+            `,
+            fragmentShader: `
+                uniform vec3 color;
+                uniform float sigma;
+                uniform float alphaMagnitude;
+                varying vec2 vUv;
+                void main() {
+                    float dist = distance(vUv, vec2(0.5, 0.5));
+                    float alpha = alphaMagnitude * exp(-dist * dist / (2.0 * sigma * sigma));
+                    gl_FragColor = vec4(color, alpha);
+                }
+            `
+        });
+
+        // Gaussian splat shader material for the subtractive set of points
+        const subtractiveMaterial = new THREE.ShaderMaterial({
+            transparent: true,
+            uniforms: {
+                color: { value: new THREE.Color(0x000000) },
+                sigma: { value: 0.2 },
+                alphaMagnitude: { value: 1.0 }
+            },
+            vertexShader: `
+                varying vec2 vUv;
+                void main() {
+                    vUv = uv;
+                    gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+                }
+            `,
+            fragmentShader: `
+                uniform vec3 color;
+                uniform float sigma;
+                uniform float alphaMagnitude;
+                varying vec2 vUv;
+                void main() {
+                    float dist = distance(vUv, vec2(0.5, 0.5));
+                    float alpha = alphaMagnitude * exp(-dist * dist / (2.0 * sigma * sigma));
+                    gl_FragColor = vec4(color, alpha);
+                }
+            `
+        });
+
+        // Add the points from the first set to the scene with random size, alpha magnitude, and color
+        points.forEach(point => {
+            const geometry = new THREE.PlaneGeometry(point.size, point.size, 1, 1);
+            gaussianMaterial.uniforms.alphaMagnitude.value = point.alphaMagnitude;
+            gaussianMaterial.uniforms.color.value = point.color;
+            const splat = new THREE.Mesh(geometry, gaussianMaterial.clone());
+            splat.position.set(point.x, point.y, point.z);
+            scene.add(splat);
+        });
+
+        // Add the points from the subtractive set to the scene with random size and alpha magnitude
+        subtractivePoints.forEach(point => {
+            const geometry = new THREE.PlaneGeometry(point.size, point.size, 1, 1);
+            subtractiveMaterial.uniforms.alphaMagnitude.value = point.alphaMagnitude;
+            const splat = new THREE.Mesh(geometry, subtractiveMaterial.clone());
+            splat.position.set(point.x, point.y, point.z);
+            scene.add(splat);
+        });
+
+        // Set the camera position
+        camera.position.z = 2;
+
+        // Render the scene
+        renderer.render(scene, camera);
+    </script>
+</body>
+
+</html>
