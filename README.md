@@ -4,6 +4,50 @@
 
 **Consensus Blending** is a novel approach to enhance LiDAR data by capitalizing on overlapping pulse regions. By focusing on areas where pulses intersect, this method aims to boost the signal-to-noise ratio, ensuring that only consistent and corroborated data is emphasized. By treating overlapping LiDAR pulses as a form of consensus, or a "seconded motion", weak or inconsistent signals can be minimized or excluded, yielding a more refined and reliable point cloud. This technique has potential implications for improving point cloud quality in applications ranging from topographic mapping to autonomous vehicle navigation.
 
+# Gaussian Splatting and Data Integration: A Deep Dive
+
+Exploring the nature of observations, Gaussian splatting stands out as a versatile technique in computer graphics and data visualization. Our discussion ventured into the intricacies of integrating 4D observations and the role of Gaussian splatting in this context.
+
+## The Gaussian Nature of Observations
+
+All observations, from sources such as lidar, radar, cameras, or sound, can potentially be viewed as Gaussian. This perspective arises from the interpretation of observations as fields in a 4D space – comprising three spatial dimensions and time. Mathematically, this can be represented as:
+
+$$\[ \text{Observation} = f(x, y, z, t) \]$$
+
+The Bayesian approach emphasizes that all measurements should ideally come with a prior, possibly represented by a 4D Total Propagated Uncertainty (4DTPU). This leads us to an essential revelation:
+
+$$\[ \text{Observation Complete} = \text{Observation} + 4DTPU \]$$
+
+## Gaussian Splatting: The Heart of Integration
+
+The essence of Gaussian splatting lies in its ability to approximate diverse behaviors through superposition. By judiciously placing and scaling Gaussian functions, even introducing negative amplitudes, asymmetric features in data can be effectively captured. In a 2D space, the Gaussian function is given by:
+
+$$\[ G(x, y) = e^{-\frac{x^2 + y^2}{2\sigma^2}} \]$$
+
+## Efficient Alternatives to Gaussian
+
+While Gaussians are powerful, computational efficiency often dictates the search for alternatives:
+
+1. **Epanechnikov Kernel**: Defined as \( K(u) = \frac{3(1 - u^2)}{4} \) for \( |u| \leq 1 \) and 0 otherwise.
+2. **B-spline Kernels**: B-splines are piecewise polynomial functions, offering a balance between smoothness and computational efficiency.
+3. **Piecewise Linear Kernel**: Represented as a triangle function, it's less smooth but computationally efficient.
+4. **Wavelet Transform**: Wavelets like the Haar wavelet can provide localized frequency information.
+5. **Look-up Tables (LUTs)**: Precomputed values of the Gaussian function, stored for faster access.
+6. **Binomial Approximation**: A multi-pass algorithm that approaches a Gaussian shape.
+
+## Introducing Negative Splatting
+
+Traditional Gaussian splatting primarily utilizes positive kernel values. However, the concept of "negative splatting" brings forth a novel approach. By employing both positive and negative Gaussians, datasets with overlapping or contradictory information can be seamlessly integrated. This idea can be represented as:
+
+$$\[ \text{Integrated Data} = \text{Positive Gaussian} - \text{Negative Gaussian} \]$$
+
+## Key Terms and Concepts
+
+1. **4DTPU (4D Total Propagated Uncertainty)**: Represents the uncertainty associated with an observation in a 4D space.
+2. **NeRF (Neural Radiance Fields)**: A technique for 3D scene rendering from 2D images using deep learning.
+3. **Differential Rendering**: Highlights the difference between two rendering techniques.
+4. **Deconvolution**: An image processing technique that can sometimes yield negative values.
+5. **Wavelet Transforms**: Decomposes signals into various frequency bands.
 
 # Shadertoys
 
@@ -356,3 +400,160 @@ void mainImage( out vec4 fragColor, in vec2 fragCoord )
     fragColor = vec4(vec3(combined), 1.0);
 }
 ```
+
+## Gaussian Alternatives (1D)
+
+![image](https://github.com/kkmcgg/splat/assets/36888812/44ac00a4-4280-4023-9077-4cfd936a262e)
+
+
+1. Epanechnikov Kernel (1D)
+
+```float epanechnikov(float x) {
+    if(abs(x) <= 1.0) {
+        return 3.0 * (1.0 - x*x) / 4.0;
+    }
+    return 0.0;
+}
+
+void mainImage( out vec4 fragColor, in vec2 fragCoord )
+{
+    vec2 uv = fragCoord/iResolution.xy;
+    uv = uv * 2.0 - 1.0; // Normalize to [-1,1]
+    
+    float value = epanechnikov(uv.x);
+    
+    fragColor = vec4(vec3(value), 1.0);
+}
+```
+
+2. B-spline Kernel (1D)
+
+```
+void mainImage( out vec4 fragColor, in vec2 fragCoord )
+{
+    vec2 uv = fragCoord/iResolution.xy;
+    uv = uv * 2.0 - 1.0; // Normalize to [-1,1]
+    
+    float value = bspline(uv.x);
+    
+    fragColor = vec4(vec3(value), 1.0);
+}
+```
+
+3. Piecewise Linear Kernel
+
+```
+void mainImage( out vec4 fragColor, in vec2 fragCoord )
+{
+    vec2 uv = fragCoord/iResolution.xy;
+    uv = uv * 2.0 - 1.0; // Normalize to [-1,1]
+    
+    float value = triangle(uv.x);
+    
+    fragColor = vec4(vec3(value), 1.0);
+}
+```
+
+4. Haar Wavelet (as a simple representation for Wavelets)
+
+```
+void mainImage( out vec4 fragColor, in vec2 fragCoord )
+{
+    vec2 uv = fragCoord/iResolution.xy;
+    uv = uv * 2.0 - 1.0; // Normalize to [-1,1]
+    
+    float value = haarWavelet(uv.x);
+    
+    fragColor = vec4(vec3(value), 1.0);
+}
+```
+
+## Gaussian Alternatives (2D)
+
+![image](https://github.com/kkmcgg/splat/assets/36888812/d04c0daf-6d77-4781-9528-f63f8316a73f)
+
+
+1. Epanechnikov Kernel (2D)
+```
+float epanechnikov(vec2 v) {
+    float normSquared = dot(v, v);
+    if(normSquared <= 1.0) {
+        return 3.0/3.14 * (1.0 - normSquared);
+    }
+    return 0.0;
+}
+
+void mainImage( out vec4 fragColor, in vec2 fragCoord )
+{
+    vec2 uv = fragCoord/iResolution.xy * 2.0 - 1.0; // Normalize to [-1,1]
+    
+    float value = epanechnikov(uv);
+    
+    fragColor = vec4(vec3(value), 1.0);
+}
+```
+2. B-spline Kernel (2D)
+
+```
+float bspline(float t) {
+    // ... same as before
+}
+
+float bspline2D(vec2 v) {
+    return bspline(v.x) * bspline(v.y);
+}
+
+void mainImage( out vec4 fragColor, in vec2 fragCoord )
+{
+    vec2 uv = fragCoord/iResolution.xy * 2.0 - 1.0;
+    
+    float value = bspline2D(uv);
+    
+    fragColor = vec4(vec3(value), 1.0);
+}
+```
+
+3. Piecewise Linear Kernel (2D)
+
+```
+float triangle(float t) {
+    // ... same as before
+}
+
+float triangle2D(vec2 v) {
+    return triangle(v.x) * triangle(v.y);
+}
+
+void mainImage( out vec4 fragColor, in vec2 fragCoord )
+{
+    vec2 uv = fragCoord/iResolution.xy * 2.0 - 1.0;
+    
+    float value = triangle2D(uv);
+    
+    fragColor = vec4(vec3(value), 1.0);
+}
+```
+
+4. Haar Wavelet (2D)
+
+```
+float haarWavelet(float t) {
+    // ... same as before
+}
+
+float haarWavelet2D(vec2 v) {
+    return haarWavelet(v.x) * haarWavelet(v.y);
+}
+
+void mainImage( out vec4 fragColor, in vec2 fragCoord )
+{
+    vec2 uv = fragCoord/iResolution.xy * 2.0 - 1.0;
+    
+    float value = haarWavelet2D(uv);
+    
+    fragColor = vec4(vec3(value), 1.0);
+}
+```
+
+# Chats
+https://chat.openai.com/share/2a3c072a-ebb3-409b-bbb1-df9bb1eca75e
