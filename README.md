@@ -2,6 +2,11 @@
 
 ![image](https://github.com/kkmcgg/splat/assets/36888812/fa4b60c5-3613-4c52-ad93-7293a963e728)
 
+## some inspiration
+https://youtu.be/juRMRej2d5c?si=RW4GNV5hFq_FeQUb
+
+https://poly.cam/gaussian-splatting
+
 **Consensus Blending** is a novel approach to enhance LiDAR data by capitalizing on overlapping pulse regions. By focusing on areas where pulses intersect, this method aims to boost the signal-to-noise ratio, ensuring that only consistent and corroborated data is emphasized. By treating overlapping LiDAR pulses as a form of consensus, or a "seconded motion", weak or inconsistent signals can be minimized or excluded, yielding a more refined and reliable point cloud. This technique has potential implications for improving point cloud quality in applications ranging from topographic mapping to autonomous vehicle navigation.
 
 # Gaussian Splatting and Data Integration: A Deep Dive
