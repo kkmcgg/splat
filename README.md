@@ -1,5 +1,8 @@
 # splat
 
+[demo](kkmcgg.github.io/splat/)
+It may not seem cool but it does have positive and negative gaussian splats! (see [js](https://github.com/kkmcgg/splat/blob/main/index.html), static)
+
 ![image](https://github.com/kkmcgg/splat/assets/36888812/fa4b60c5-3613-4c52-ad93-7293a963e728)
 
 ## some inspiration
